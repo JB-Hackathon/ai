@@ -1,0 +1,7 @@
+.claude/skills
+.env
+venv/
+__pycache__/
+.claude/
+.pytest_cache/
+.ruff_cache/

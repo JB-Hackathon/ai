@@ -1,0 +1,21 @@
+langgraph
+langgraph-checkpoint-postgres>=2.0
+langchain
+langchain-google-genai
+langchain-postgres
+google-generativeai
+fastapi
+uvicorn[standard]
+python-multipart
+aiofiles
+pymupdf
+python-docx
+libhwp
+psycopg[binary]>=3.0
+pgvector
+pydantic
+python-dotenv
+
+# dev
+ruff
+pytest
