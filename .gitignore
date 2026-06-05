@@ -264,3 +264,11 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/python,venv,visualstudiocode,macos,windows
+
+.claude/skills
+.env
+venv/
+__pycache__/
+.claude/
+.pytest_cache/
+.ruff_cache/
