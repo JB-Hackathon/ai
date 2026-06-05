@@ -1,0 +1,26 @@
+# 1. Python 3.10 가벼운 슬림 버전 사용
+FROM python:3.10-slim
+
+# 2. 필수 패키지 및 C 컴파일러 설치 (pgvector 패키지 빌드 등에 필요할 수 있음)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. 작업 디렉토리 설정 (docker-compose의 volumes와 일치)
+WORKDIR /ai
+
+# 4. 패키지 설치용 파일 복사 및 설치 (캐싱 최적화)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. 소스 코드 복사
+COPY . .
+
+# 6. 포트 노출 선언
+EXPOSE 8000
+
+# 7. Uvicorn 서버 실행
+# --reload: 개발 환경에서 소스 코드 수정 시 실시간 반영 (운영계에서는 제외 필수)
+# --host 0.0.0.0: 컨테이너 외부(backend-app)에서 접속할 수 있도록 모든 IP 허용
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
