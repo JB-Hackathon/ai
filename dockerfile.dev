@@ -1,5 +1,5 @@
-# 1. Python 3.10 가벼운 슬림 버전 사용
-FROM python:3.10-slim
+# 1. Python 3.11 가벼운 슬림 버전 사용
+FROM python:3.11-slim
 
 # 2. 필수 패키지 및 C 컴파일러 설치 (pgvector 패키지 빌드 등에 필요할 수 있음)
 RUN apt-get update && apt-get install -y --no-install-recommends \
