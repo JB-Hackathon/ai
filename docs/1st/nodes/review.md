@@ -8,13 +8,35 @@ gemini-2.5-flash가 텍스트와 이미지를 통합 처리하므로 단일 노�
 ## 심의 (`review_node`)
 
 - 모델: `ChatGoogleGenerativeAI(model="gemini-2.5-flash")`
-- 입력: system 프롬프트 + 체크리스트 + 법령 + `input_text` + `ocr_text`
-- 이미지 포함 조건:
+- 시스템 프롬프트: `"당신은 금융 광고 심의 전문가입니다. 체크리스트와 법령을 기반으로 심의 결과서를 작성해주세요."`
+
+## 프롬프트 구성
+
+사용자 메시지(`user_content`)는 다음 순서로 조합된다:
+
+1. **체크리스트** — `"- {item}"` 형식으로 나열
+2. **법령** — `law_list` 항목을 줄바꿈으로 나열
+3. **콘텐츠** — `content_text` + `ocr_text`
+4. **조건부 참고항목** (`conditional_checklist` 존재 시) — "조건부 참고항목" 섹션으로 추가 포함 (직접 적용 기준은 아니며 맥락 참고용)
+5. **재심의 피드백** (`eval_feedback` 존재 시) — 이전 평가자의 개선 지시 포함
+6. **이미지** (`needs_visual_review == True`이고 파일이 존재할 때) — jpg/png 파일을 base64 인코딩하여 `image_url` 메시지로 추가
+
+## 이미지 포함 조건
 
 | 조건 | 동작 |
 |------|------|
-| `needs_visual_review == True` | 이미지 VLM 요청에 포함 (이미지 존재가 보장됨) |
-| `needs_visual_review == False` | 텍스트만으로 처리 (이미지 불포함) |
+| `needs_visual_review == True` | content_file_path의 jpg/png를 base64로 인코딩 → `image_url` 메시지 추가 |
+| `needs_visual_review == False` | 텍스트만으로 처리 |
+
+이미지 메시지 형식:
+```python
+{
+    "type": "image_url",
+    "image_url": {"url": f"data:{mime_type};base64,{encoded}"}
+}
+```
+- MIME 타입: `.jpg` → `image/jpeg`, `.png` → `image/png`
+- 텍스트 본문은 `{"type": "text", "text": prompt_text}` 형식으로 user_content 배열에 함께 전달
 
 ## 재심의 로직
 

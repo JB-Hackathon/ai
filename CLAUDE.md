@@ -2,10 +2,8 @@
 
 ## 가상환경 활성화
 
-플랫폼: Windows + Git Bash
-
 ```bash
-source venv/Scripts/activate
+source venv/bin/activate
 ```
 
 > `ruff: command not found` 오류가 나면 venv가 활성화되지 않은 것이다.

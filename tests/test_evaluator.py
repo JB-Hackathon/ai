@@ -46,3 +46,21 @@ def test_evaluator_loop_count_starts_from_zero():
         result = evaluator_node({"loop_count": 0, "review_result": "", "checklist": [], "law_list": []})
 
     assert result["loop_count"] == 1
+
+
+def test_evaluator_includes_conditional_checklist():
+    mock_cls = _mock_eval(85.0, "좋음")
+    with patch("src.nodes.evaluator.ChatGoogleGenerativeAI", mock_cls):
+        from src.nodes.evaluator import evaluator_node
+
+        evaluator_node({
+            "loop_count": 0,
+            "review_result": "심의 결과",
+            "checklist": [],
+            "law_list": [],
+            "conditional_checklist": ["이자율 명시 권고"],
+        })
+
+    prompt = mock_cls.return_value.with_structured_output.return_value.invoke.call_args[0][0]
+    assert "조건부 참고항목" in prompt
+    assert "이자율 명시 권고" in prompt

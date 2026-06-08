@@ -5,7 +5,8 @@
 | 노드 | 역할 |
 |------|------|
 | `ocr_node` | 파일 → 텍스트 추출 (PyMuPDF / Gemini Vision / docx / libhwp) |
-| `rag_node` | input_text + ocr_text를 쿼리로 PostgreSQL+pgvector에서 법령 검색 |
+| `translation_node` | language_code가 한국어가 아닌 경우 content_text / ocr_text를 한국어로 번역 |
+| `rag_node` | content_text + ocr_text를 쿼리로 PostgreSQL+pgvector에서 법령 검색 |
 | `checklist_node` | gemini-2.5-flash로 체크리스트 생성 |
 | `review_node` | gemini-2.5-flash로 심의 결과 작성 (텍스트 + 이미지 통합 처리) |
 | `evaluator_node` | 체크리스트 대비 심의 결과 평가, 점수/피드백 반환 |
@@ -13,7 +14,7 @@
 ## 엣지 & 라우팅
 
 ```
-START -> ocr_node -> rag_node -> checklist_node -> review_node
+START -> ocr_node -> translation_node -> rag_node -> checklist_node -> review_node
 
 review_node -> evaluator_node
   -> (score >= 80 or loop_count >= 3) -> END

@@ -1,16 +1,17 @@
 from src.state import ReviewState
 
 EXPECTED_FIELDS = {
-    "input_text",
-    "input_files",
-    "channel",
-    "content_type",
+    "content_text",
+    "content_file_path",
+    "channel_type",
+    "content_category",
     "product_category",
-    "industry",
-    "language",
+    "business_sector",
+    "language_code",
     "ocr_text",
     "law_list",
     "checklist",
+    "conditional_checklist",
     "needs_visual_review",
     "review_result",
     "eval_score",

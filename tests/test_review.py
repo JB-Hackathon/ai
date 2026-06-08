@@ -75,12 +75,12 @@ def test_review_node_with_image():
             from src.nodes.review import review_node
 
             result = review_node({
-                "input_text": "광고",
+                "content_text": "광고",
                 "ocr_text": "",
                 "checklist": [],
                 "law_list": [],
                 "needs_visual_review": True,
-                "input_files": [tmp_path],
+                "content_file_path": [tmp_path],
                 "eval_feedback": "",
             })
     finally:

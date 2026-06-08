@@ -5,18 +5,21 @@
 ```python
 class ReviewState(TypedDict):
     # 사용자 입력 (요청 시 채워짐)
-    input_text: str
-    input_files: list[str]         # 파일 경로 목록
-    channel: str
-    content_type: str
+    content_text: str
+    content_file_path: list[str]   # 파일 경로 목록
+    channel_type: str
+    content_category: str
     product_category: str | None
-    industry: str
-    language: str
+    business_sector: str
+    language_code: str
 
     # Agent 실행 중 채워지는 필드
-    ocr_text: str                  # OCR 추출 텍스트
+    ocr_text: str                  # OCR 추출 텍스트 (번역 후에는 한국어)
+    original_content_text: str     # 번역 전 원본 content_text (한국어인 경우 빈 문자열)
+    original_ocr_text: str         # 번역 전 원본 ocr_text (한국어인 경우 빈 문자열)
     law_list: list[str]            # RAG로 찾은 법령 조항
     checklist: list[str]           # LLM이 생성한 심의 체크리스트
+    conditional_checklist: list[str]  # 조건부 참고 체크리스트 (직접 적용 아님)
     needs_visual_review: bool      # rag_node가 시각 요건 법령 감지 시 True
     review_result: str             # 심의 결과서 (초안)
     eval_score: float              # 평가 점수 (0~100)
@@ -30,22 +33,25 @@ class ReviewState(TypedDict):
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `input_text` | `str` | 사용자가 최초로 제출한 원본 글이나 광고 문구 |
-| `input_files` | `list[str]` | 이미지 / PDF / DOCX / HWP 파일 경로 목록 |
-| `channel` | `str` | 홈페이지 / SNS / 문자, 카카오톡 / 기타 |
-| `content_type` | `str` | 금융상품 광고 / 업무광고 / 정보제공 / 기타 |
+| `content_text` | `str` | 사용자가 최초로 제출한 글이나 광고 문구 (번역 후에는 한국어로 교체됨) |
+| `content_file_path` | `list[str]` | 이미지 / PDF / DOCX / HWP 파일 경로 목록 |
+| `channel_type` | `str` | 홈페이지 / SNS / 문자, 카카오톡 / 기타 |
+| `content_category` | `str` | 금융상품 광고 / 업무광고 / 정보제공 / 기타 |
 | `product_category` | `str \| None` | 예금성 / 대출성 / 카드·혜택 / 자동차금융 / 투자성 / 예금자보호 / 기타 (상품 광고인 경우만) |
-| `industry` | `str` | 은행 / 여신금융 / 금융투자 / 저축은행 / 기타 |
-| `language` | `str` | 한국어 / 영어 / 필리핀어 / 캄보디아어 / 중국어 / 베트남어 |
+| `business_sector` | `str` | 은행 / 여신금융 / 금융투자 / 저축은행 / 기타 |
+| `language_code` | `str` | 한국어 / 영어 / 필리핀어 / 캄보디아어 / 중국어 / 베트남어 |
 
 ## Agent 실행 중 채워지는 필드
 
 | 필드 | 타입 | 설명 | 담당 노드 |
 |------|------|------|-----------|
-| `ocr_text` | `str` | OCR 추출 텍스트 | `ocr_node` |
+| `ocr_text` | `str` | OCR 추출 텍스트 (번역 후에는 한국어로 교체됨) | `ocr_node` |
+| `original_content_text` | `str` | 번역 전 원본 content_text | `translation_node` |
+| `original_ocr_text` | `str` | 번역 전 원본 ocr_text | `translation_node` |
 | `needs_visual_review` | `bool` | Vision OCR 사용 여부 (이미지/스캔PDF 감지) | `ocr_node` → `rag_node` 보완 |
 | `law_list` | `list[str]` | RAG로 찾은 법령 조항 | `rag_node` |
 | `checklist` | `list[str]` | 심의 체크리스트 | `checklist_node` |
+| `conditional_checklist` | `list[str]` | 조건부 참고 체크리스트 (직접 적용 아님) | `checklist_node` |
 | `review_result` | `str` | 심의 결과서 초안 | `review_node` |
 | `eval_score` | `float` | 평가 점수 (0~100) | `evaluator_node` |
 | `eval_feedback` | `str` | 평가 피드백 | `evaluator_node` |
@@ -59,18 +65,21 @@ class ReviewState(TypedDict):
 
 ```python
 initial_state = {
-    "input_text": input_text or "",
-    "input_files": saved_file_paths,
-    "channel": channel,
-    "content_type": content_type,
+    "content_text": content_text or "",
+    "content_file_path": saved_file_paths,
+    "channel_type": channel_type,
+    "content_category": content_category,
     "product_category": product_category,
-    "industry": industry,
-    "language": language,
+    "business_sector": business_sector,
+    "language_code": language_code,
     # 실행 중 채워지는 필드 초기값
     "ocr_text": "",
+    "original_content_text": "",
+    "original_ocr_text": "",
     "needs_visual_review": False,
     "law_list": [],
     "checklist": [],
+    "conditional_checklist": [],
     "review_result": "",
     "eval_score": 0.0,
     "eval_feedback": "",

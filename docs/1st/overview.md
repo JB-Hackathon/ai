@@ -14,7 +14,7 @@ FastAPI 서버로 노출하여 backend와 연동한다.
 |------|------|
 | LLM/VLM | gemini-2.5-flash (Google) — 텍스트 + 이미지 통합 처리 |
 | OCR | PyMuPDF(PDF 텍스트/스캔 감지), Gemini Vision(이미지/스캔PDF), python-docx(DOCX), libhwp(HWP) |
-| 벡터 스토어 | PostgreSQL + pgvector + Gemini text-embedding-004 |
+| 벡터 스토어 | PostgreSQL + pgvector + gemini-embedding-2 (1024차원) |
 | RAG 데이터 | `data/` 서브모듈에서 제공 예정 (인덱싱 파이프라인 포함) |
 | 서비스 | FastAPI REST API |
 
@@ -33,12 +33,11 @@ ai/
 │   │   │   ├── docx.py      # extract_docx()
 │   │   │   ├── hwp.py       # extract_hwp()
 │   │   │   └── image.py     # extract_image()
+│   │   ├── translation.py   # 번역 노드 (외국어 → 한국어)
 │   │   ├── rag.py           # RAG 노드 (법령 선별)
 │   │   ├── checklist.py     # 체크리스트 생성 노드
 │   │   ├── review.py        # 심의 노드 (LLM / VLM 분기)
 │   │   └── evaluator.py     # 평가자 노드
-│   └── vector_store/
-│       └── store.py         # PostgreSQL+pgvector 초기화 및 인덱싱
 ├── requirements.txt
 └── .env.example
 ```
@@ -47,9 +46,9 @@ ai/
 
 1. `requirements.txt` + `.env.example` 생성
 2. `src/state.py` — State TypedDict 정의
-3. `src/vector_store/store.py` — PostgreSQL+pgvector 초기화
-4. `src/nodes/ocr/` — 파일 타입별 OCR
-5. `src/nodes/rag.py` — 벡터 검색 노드
+3. `src/nodes/ocr/` — 파일 타입별 OCR
+4. `src/nodes/translation.py` — 번역 노드
+5. `src/nodes/rag.py` — 하이브리드 법령 검색 노드
 6. `src/nodes/checklist.py` — 체크리스트 생성
 7. `src/nodes/review.py` — LLM/VLM 심의
 8. `src/nodes/evaluator.py` — 평가자

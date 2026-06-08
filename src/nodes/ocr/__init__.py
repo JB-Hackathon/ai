@@ -15,11 +15,11 @@ HANDLERS = {
 
 
 def ocr_node(state: dict) -> dict:
-    if not state.get("input_files"):
+    if not state.get("content_file_path"):
         return {}
     texts = []
     is_visual = False
-    for path in state["input_files"]:
+    for path in state["content_file_path"]:
         ext = Path(path).suffix.lower()
         result = HANDLERS[ext](path)
         if isinstance(result, tuple):

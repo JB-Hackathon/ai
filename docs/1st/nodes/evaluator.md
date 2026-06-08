@@ -8,7 +8,7 @@
 ## 평가 기준
 
 - 모델: `gemini-2.5-flash`
-- 입력: `review_result` + `checklist` + `law_list` + `input_text` + `ocr_text`
+- 입력: `review_result` + `checklist` + `law_list` + `content_text` + `ocr_text`
 - 출력: `with_structured_output(EvalOutput)` — 다른 노드와 동일한 패턴으로 파싱 안정성 확보
 
 ```python

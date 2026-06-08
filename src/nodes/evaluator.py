@@ -10,6 +10,8 @@ class EvalOutput(BaseModel):
 def evaluator_node(state: dict) -> dict:
     checklist_text = "\n".join(f"- {item}" for item in state.get("checklist", []))
     law_text = "\n".join(state.get("law_list", []))
+    conditional_text = "\n".join(f"- {item}" for item in state.get("conditional_checklist", []))
+
     prompt = f"""다음 심의 결과서를 체크리스트 기준으로 평가해주세요.
 
 ## 체크리스트
@@ -19,15 +21,17 @@ def evaluator_node(state: dict) -> dict:
 {law_text}
 
 ## 심의 대상 텍스트
-{state.get("input_text", "")}
+{state.get("content_text", "")}
 
 ## OCR 추출 텍스트
 {state.get("ocr_text", "")}
 
 ## 심의 결과서
 {state.get("review_result", "")}
-
-0~100점 사이 점수와 구체적인 피드백을 작성해주세요."""
+"""
+    if conditional_text:
+        prompt += f"\n## 조건부 참고항목 (직접 적용 기준은 아니나 맥락 참고용)\n{conditional_text}\n"
+    prompt += "\n0~100점 사이 점수와 구체적인 피드백을 작성해주세요."
 
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
     structured_llm = llm.with_structured_output(EvalOutput)

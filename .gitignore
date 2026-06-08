@@ -272,3 +272,4 @@ __pycache__/
 .claude/
 .pytest_cache/
 .ruff_cache/
+docs/test_input/

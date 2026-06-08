@@ -1,4 +1,3 @@
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from src.nodes.checklist import checklist_node
@@ -6,6 +5,7 @@ from src.nodes.evaluator import evaluator_node
 from src.nodes.ocr import ocr_node
 from src.nodes.rag import rag_node
 from src.nodes.review import review_node
+from src.nodes.translation import translation_node
 from src.state import ReviewState
 
 
@@ -15,17 +15,23 @@ def should_continue(state: ReviewState) -> str:
     return "review"
 
 
-def build_graph():
+def build_graph(checkpointer=None):
+    if checkpointer is None:
+        from langgraph.checkpoint.memory import MemorySaver
+        checkpointer = MemorySaver()
+
     builder = StateGraph(ReviewState)
 
     builder.add_node("ocr_node", ocr_node)
+    builder.add_node("translation_node", translation_node)
     builder.add_node("rag_node", rag_node)
     builder.add_node("checklist_node", checklist_node)
     builder.add_node("review_node", review_node)
     builder.add_node("evaluator_node", evaluator_node)
 
     builder.add_edge(START, "ocr_node")
-    builder.add_edge("ocr_node", "rag_node")
+    builder.add_edge("ocr_node", "translation_node")
+    builder.add_edge("translation_node", "rag_node")
     builder.add_edge("rag_node", "checklist_node")
     builder.add_edge("checklist_node", "review_node")
     builder.add_edge("review_node", "evaluator_node")
@@ -35,7 +41,7 @@ def build_graph():
         {"end": END, "review": "review_node"},
     )
 
-    return builder.compile(checkpointer=MemorySaver())
+    return builder.compile(checkpointer=checkpointer)
 
 
 graph = build_graph()
