@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from src.nodes.checklist import ChecklistItem
+
 
 _BASE_STATE = {
     "input_text": "금융상품 광고 내용",
@@ -12,6 +14,7 @@ _BASE_STATE = {
     "ocr_text": "",
     "law_list": [],
     "checklist": [],
+    "conditional_checklist": [],
     "needs_visual_review": False,
     "review_result": "",
     "eval_score": 0.0,
@@ -22,11 +25,24 @@ _BASE_STATE = {
 }
 
 
+def _make_checklist_item(item_text: str) -> ChecklistItem:
+    return ChecklistItem(
+        item=item_text,
+        reason="테스트 이유",
+        trigger_expression="테스트 트리거",
+        source_document="테스트 법령",
+        check_method="테스트 점검 방법",
+        priority="HIGH",
+        uncertainty="",
+    )
+
+
 def _setup_mocks(checklist_items, review_content, eval_score, eval_feedback):
     """checklist / review / evaluator LLM을 mock 설정한 tuple 반환."""
     # checklist mock
     checklist_result = MagicMock()
-    checklist_result.items = checklist_items
+    checklist_result.items = [_make_checklist_item(t) for t in checklist_items]
+    checklist_result.conditional_items = []
     mock_checklist = MagicMock()
     mock_checklist.return_value.with_structured_output.return_value.invoke.return_value = checklist_result
 
@@ -55,6 +71,8 @@ def test_graph_passes_on_high_score():
     )
 
     with (
+        patch("src.nodes.rag._embed_query", return_value=[0.0] * 1024),
+        patch("src.nodes.rag._search_laws", return_value=[]),
         patch("src.nodes.checklist.ChatGoogleGenerativeAI", mock_checklist),
         patch("src.nodes.review.ChatGoogleGenerativeAI", mock_review),
         patch("src.nodes.evaluator.ChatGoogleGenerativeAI", mock_eval),
@@ -65,7 +83,8 @@ def test_graph_passes_on_high_score():
 
     assert result["review_passed"] is True
     assert result["loop_count"] == 1
-    assert result["checklist"] == ["항목1"]
+    assert len(result["checklist"]) == 1
+    assert "항목1" in result["checklist"][0]
 
 
 def test_graph_ends_after_max_loops():
@@ -77,6 +96,8 @@ def test_graph_ends_after_max_loops():
     )
 
     with (
+        patch("src.nodes.rag._embed_query", return_value=[0.0] * 1024),
+        patch("src.nodes.rag._search_laws", return_value=[]),
         patch("src.nodes.checklist.ChatGoogleGenerativeAI", mock_checklist),
         patch("src.nodes.review.ChatGoogleGenerativeAI", mock_review),
         patch("src.nodes.evaluator.ChatGoogleGenerativeAI", mock_eval),

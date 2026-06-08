@@ -95,13 +95,13 @@ def test_ocr_node_no_files():
     from src.nodes.ocr import ocr_node
 
     assert ocr_node({}) == {}
-    assert ocr_node({"input_files": []}) == {}
+    assert ocr_node({"content_file_path": []}) == {}
 
 
 def test_ocr_node_docx():
     from src.nodes.ocr import ocr_node
 
-    result = ocr_node({"input_files": [str(FIXTURES / "sample.docx")]})
+    result = ocr_node({"content_file_path": [str(FIXTURES / "sample.docx")]})
     assert "ocr_text" in result
     assert result["needs_visual_review"] is False
     assert "테스트" in result["ocr_text"]
@@ -122,7 +122,7 @@ def test_ocr_node_image_sets_visual_review():
             tmp.write(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
             tmp_path = tmp.name
         try:
-            result = ocr_node({"input_files": [tmp_path]})
+            result = ocr_node({"content_file_path": [tmp_path]})
         finally:
             os.unlink(tmp_path)
 

@@ -40,11 +40,11 @@ HANDLERS = {
 }
 
 def ocr_node(state):
-    if not state.get("input_files"):
+    if not state.get("content_file_path"):
         return {}  # 파일 없으면 통과 (별도 분기 노드 불필요)
     texts = []
     is_visual = False
-    for path in state["input_files"]:
+    for path in state["content_file_path"]:
         ext = Path(path).suffix.lower()
         result = HANDLERS[ext](path)
         if isinstance(result, tuple):

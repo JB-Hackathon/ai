@@ -44,13 +44,11 @@ app = FastAPI(lifespan=lifespan)
 
 ### 호출 방법
 
-`/review` 요청 시 UUID `thread_id`를 생성하여 LangGraph config에 전달한다.
+`/review/{content_version_id}` 요청 시 `content_version_id`를 `str`로 변환하여 LangGraph config에 전달한다.  
+`content_version_id`(BIGINT → int)와 LangGraph `thread_id`(str) 간 타입이 다르므로 명시적 변환이 필요하다.
 
 ```python
-import uuid
-from langgraph.graph import StateGraph
-
-thread_id = str(uuid.uuid4())
+thread_id = str(content_version_id)
 config = {"configurable": {"thread_id": thread_id}}
 
 result = await graph.ainvoke(initial_state, config=config)
@@ -69,10 +67,10 @@ result = await graph.ainvoke(initial_state, config=config)
 ### 흐름
 
 ```
-POST /review
-  → thread_id 생성 (UUID)
+POST /review/{content_version_id}
+  → thread_id = str(content_version_id)
   → graph.ainvoke(state, config) 실행
-  → 심의 완료 → response에 thread_id 포함
+  → 심의 완료 → response에 review_comments, review_status 반환
 
 챗봇 (준법 자문가)
   → thread_id로 최종 state 로드
@@ -103,5 +101,5 @@ await graph.aupdate_state(config, {
 ## 인프라
 
 - **PostgreSQL 인스턴스**: 벡터 스토어(pgvector)와 동일한 인스턴스 공유 가능
-- **자동 생성 테이블**: `checkpointer.setup()` 호출 시 `langgraph_checkpoint` 테이블 자동 생성
+- **자동 생성 테이블**: `checkpointer.setup()` 호출 시 `checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations` 4개 테이블 자동 생성 (상세: [checkpoint-storage.md](./checkpoint-storage.md))
 - **환경 변수**: `DATABASE_URL` — 기존 벡터 스토어와 동일한 변수 사용
