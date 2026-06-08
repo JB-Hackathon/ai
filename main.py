@@ -39,6 +39,7 @@ class ReviewResponse(BaseModel):
     eval_score: float
     review_result: str
     checklist: list[str]
+    conditional_checklist: list[str]
     law_list: list[str]
     eval_feedback: str
     review_status: str  # "approved" | "rejected"
@@ -88,8 +89,11 @@ async def start_review(content_version_id: int):
         "business_sector": row["business_sector"],
         "language_code": row["language_code"],
         "ocr_text": "",
+        "original_content_text": "",
+        "original_ocr_text": "",
         "law_list": [],
         "checklist": [],
+        "conditional_checklist": [],
         "needs_visual_review": False,
         "review_result": "",
         "eval_score": 0.0,
@@ -108,6 +112,7 @@ async def start_review(content_version_id: int):
         eval_score=final_state["eval_score"],
         review_result=final_state["review_result"],
         checklist=final_state["checklist"],
+        conditional_checklist=final_state.get("conditional_checklist", []),
         law_list=final_state["law_list"],
         eval_feedback=final_state["eval_feedback"],
         review_status=review_status,
