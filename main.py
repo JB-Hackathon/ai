@@ -4,26 +4,30 @@ from contextlib import asynccontextmanager
 import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg.rows import dict_row
 from pydantic import BaseModel
 
 load_dotenv()
 
+from src.chatbot.graph import build_graph as build_chatbot_graph  # noqa: E402
 from src.graph import build_graph  # noqa: E402
 
 _graph = None
+_chatbot_graph = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _graph
+    global _graph, _chatbot_graph
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise RuntimeError("DATABASE_URL 환경변수가 설정되지 않았습니다.")
     async with AsyncPostgresSaver.from_conn_string(database_url) as checkpointer:
         await checkpointer.setup()
         _graph = build_graph(checkpointer)
+        _chatbot_graph = build_chatbot_graph(checkpointer)
         yield
 
 
@@ -35,6 +39,14 @@ app = FastAPI(
 )
 
 
+class ChatbotRequest(BaseModel):
+    message: str
+
+
+class ChatbotResponse(BaseModel):
+    reply: str
+
+
 class ReviewResponse(BaseModel):
     eval_score: float
     review_result: str
@@ -42,6 +54,18 @@ class ReviewResponse(BaseModel):
     law_list: list[str]
     eval_feedback: str
     review_status: str  # "approved" | "rejected"
+
+
+def _fetch_chat_thread(thread_id: str) -> dict | None:
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL 환경변수가 설정되지 않았습니다.")
+    with psycopg.connect(database_url) as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            "SELECT content_version_id FROM chat_threads WHERE thread_id = %s",
+            (thread_id,),
+        )
+        return cur.fetchone()
 
 
 def _fetch_content_version(content_version_id: int) -> dict | None:
@@ -112,3 +136,30 @@ async def start_review(content_version_id: int):
         eval_feedback=final_state["eval_feedback"],
         review_status=review_status,
     )
+
+
+@app.post("/thread/{thread_id}", response_model=ChatbotResponse)
+async def send_chatbot_message(thread_id: str, body: ChatbotRequest):
+    row = _fetch_chat_thread(thread_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="챗봇 스레드를 찾을 수 없습니다.")
+
+    content_version_id = row["content_version_id"]
+    snapshot = await _graph.aget_state({"configurable": {"thread_id": str(content_version_id)}})
+    if not snapshot.values:
+        raise HTTPException(status_code=404, detail="Phase 1 심의 결과를 찾을 수 없습니다.")
+
+    phase1 = snapshot.values
+    _phase1_fields = [
+        "review_result", "law_list", "checklist", "conditional_checklist",
+        "content_text", "ocr_text", "channel_type", "content_category",
+        "product_category", "business_sector", "eval_score", "eval_feedback",
+        "review_passed", "needs_visual_review",
+    ]
+    initial_state = {field: phase1[field] for field in _phase1_fields}
+    initial_state["messages"] = [HumanMessage(content=body.message)]
+
+    config = {"configurable": {"thread_id": thread_id}}
+    final_state = await _chatbot_graph.ainvoke(initial_state, config=config)
+
+    return ChatbotResponse(reply=final_state["messages"][-1].content)

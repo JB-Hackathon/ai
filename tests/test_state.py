@@ -9,6 +9,8 @@ EXPECTED_FIELDS = {
     "business_sector",
     "language_code",
     "ocr_text",
+    "original_content_text",
+    "original_ocr_text",
     "law_list",
     "checklist",
     "conditional_checklist",
