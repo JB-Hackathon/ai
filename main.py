@@ -62,6 +62,42 @@ def _fetch_content_version(content_version_id: int) -> dict | None:
         return cur.fetchone()
 
 
+def _split_content_file_paths(content_file_path: str | None) -> list[str]:
+    if not content_file_path:
+        return []
+    normalized_path = content_file_path.replace(",", "\n")
+    return [_resolve_content_file_path(path.strip()) for path in normalized_path.splitlines() if path.strip()]
+
+
+def _resolve_content_file_path(content_file_path: str) -> str:
+    candidates = [
+        content_file_path,
+        os.path.join("..", "backend", content_file_path),
+        os.path.join("/backend", content_file_path),
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return content_file_path
+
+
+def _missing_content_file_paths(content_file_paths: list[str]) -> list[str]:
+    return [path for path in content_file_paths if not os.path.exists(path)]
+
+
+def _file_not_found_review_response(missing_files: list[str]) -> ReviewResponse:
+    missing_file_text = ", ".join(missing_files)
+    return ReviewResponse(
+        eval_score=0.0,
+        review_result=f"업로드 파일을 찾을 수 없어 1차 심의를 진행할 수 없습니다: {missing_file_text}",
+        checklist=[],
+        conditional_checklist=[],
+        law_list=[],
+        eval_feedback="DB의 content_file_path와 AI 컨테이너의 업로드 폴더 마운트 상태를 확인해주세요.",
+        review_status="rejected",
+    )
+
+
 @app.get("/")
 def ping_get():
     return {"status": "success", "message": "pong (GET)"}
@@ -78,7 +114,10 @@ async def start_review(content_version_id: int):
     if row is None:
         raise HTTPException(status_code=404, detail="심의 콘텐츠 버전을 찾을 수 없습니다.")
 
-    files = [f.strip() for f in (row["content_file_path"] or "").split("\n") if f.strip()]
+    files = _split_content_file_paths(row["content_file_path"])
+    missing_files = _missing_content_file_paths(files)
+    if missing_files:
+        return _file_not_found_review_response(missing_files)
 
     initial_state = {
         "content_text": row["content_text"] or "",
